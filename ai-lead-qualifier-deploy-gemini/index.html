@@ -1,0 +1,716 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI Lead Qualifier — Live Demo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#16231F;
+    --ink-soft:#1E2D26;
+    --parchment:#FBF7EE;
+    --paper-line:#E4DCC8;
+    --amber:#E8954A;
+    --amber-deep:#C97A33;
+    --sage:#6F9C7D;
+    --sage-deep:#4F7A5A;
+    --clay:#C2604F;
+    --clay-deep:#9E4937;
+    --text-dark:#2B2A26;
+    --text-muted:#7A7264;
+    --on-ink:#F4EFE3;
+    --on-ink-muted:#A9B6AC;
+    --radius:10px;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--parchment);
+    font-family:'IBM Plex Sans',sans-serif;
+    color:var(--text-dark);
+    padding:24px;
+    -webkit-font-smoothing:antialiased;
+  }
+  @media (prefers-reduced-motion: reduce){
+    *{animation-duration:0.001ms !important; transition-duration:0.001ms !important;}
+  }
+  :focus-visible{outline:2px solid var(--amber-deep); outline-offset:2px;}
+
+  .app-shell{
+    max-width:1080px;
+    margin:0 auto;
+    border:1px solid var(--paper-line);
+    border-radius:16px;
+    overflow:hidden;
+    box-shadow:0 1px 0 rgba(0,0,0,0.03), 0 12px 32px -16px rgba(22,35,31,0.25);
+    background:var(--parchment);
+  }
+
+  .top-banner{
+    background:var(--ink);
+    color:var(--on-ink);
+    padding:18px 24px;
+    display:flex;
+    align-items:flex-start;
+    justify-content:space-between;
+    gap:16px;
+    flex-wrap:wrap;
+  }
+  .top-banner .eyebrow{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:11px;
+    letter-spacing:0.12em;
+    text-transform:uppercase;
+    color:var(--amber);
+    margin:0 0 4px 0;
+  }
+  .top-banner h1{
+    font-family:'Space Grotesk',sans-serif;
+    font-size:20px;
+    margin:0 0 6px 0;
+    font-weight:600;
+  }
+  .top-banner p{
+    margin:0;
+    font-size:13px;
+    color:var(--on-ink-muted);
+    max-width:480px;
+    line-height:1.5;
+  }
+  .live-pill{
+    display:flex;
+    align-items:center;
+    gap:6px;
+    font-family:'IBM Plex Mono',monospace;
+    font-size:11px;
+    letter-spacing:0.08em;
+    background:rgba(244,239,227,0.08);
+    border:1px solid rgba(244,239,227,0.18);
+    border-radius:999px;
+    padding:6px 12px;
+    color:var(--on-ink);
+    white-space:nowrap;
+    height:fit-content;
+  }
+  .live-dot{
+    width:7px;height:7px;border-radius:50%;
+    background:var(--sage);
+    box-shadow:0 0 0 0 rgba(111,156,125,0.6);
+    animation:pulse 2s infinite;
+  }
+  @keyframes pulse{
+    0%{box-shadow:0 0 0 0 rgba(111,156,125,0.55);}
+    70%{box-shadow:0 0 0 6px rgba(111,156,125,0);}
+    100%{box-shadow:0 0 0 0 rgba(111,156,125,0);}
+  }
+
+  .grid{
+    display:grid;
+    grid-template-columns:280px 1fr;
+  }
+  @media (max-width:760px){
+    .grid{grid-template-columns:1fr;}
+  }
+
+  /* control rail */
+  .rail{
+    background:var(--ink-soft);
+    color:var(--on-ink);
+    padding:22px 20px;
+    display:flex;
+    flex-direction:column;
+    gap:16px;
+    border-right:1px solid rgba(244,239,227,0.08);
+  }
+  .rail-label{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:10px;
+    letter-spacing:0.1em;
+    text-transform:uppercase;
+    color:var(--on-ink-muted);
+    margin-bottom:6px;
+    display:block;
+  }
+  .field{display:flex; flex-direction:column;}
+  .field input, .field textarea, .field select{
+    background:rgba(244,239,227,0.06);
+    border:1px solid rgba(244,239,227,0.18);
+    color:var(--on-ink);
+    border-radius:8px;
+    padding:9px 10px;
+    font-family:'IBM Plex Sans',sans-serif;
+    font-size:13px;
+    resize:vertical;
+  }
+  .field textarea{min-height:64px; line-height:1.4;}
+  .field input::placeholder, .field textarea::placeholder{color:rgba(169,182,172,0.55);}
+  .field select{appearance:none; cursor:pointer;}
+
+  .btn{
+    font-family:'Space Grotesk',sans-serif;
+    font-weight:600;
+    font-size:13px;
+    border-radius:8px;
+    border:none;
+    cursor:pointer;
+    padding:10px 14px;
+    transition:transform 0.08s ease, opacity 0.08s ease;
+  }
+  .btn:active{transform:translateY(1px);}
+  .btn:disabled{opacity:0.5; cursor:not-allowed;}
+  .btn-primary{background:var(--amber); color:var(--ink);}
+  .btn-primary:hover:not(:disabled){background:var(--amber-deep);}
+  .btn-ghost{
+    background:transparent;
+    border:1px solid rgba(244,239,227,0.25);
+    color:var(--on-ink-muted);
+    font-size:12px;
+    padding:8px 12px;
+  }
+  .btn-ghost:hover:not(:disabled){color:var(--on-ink); border-color:rgba(244,239,227,0.45);}
+
+  .rail-hint{
+    font-size:11.5px;
+    color:var(--on-ink-muted);
+    line-height:1.5;
+    margin:-4px 0 0 0;
+  }
+
+  /* chat canvas */
+  .canvas{
+    display:flex;
+    flex-direction:column;
+    min-height:560px;
+    background:var(--parchment);
+  }
+  .widget-header{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    padding:16px 20px;
+    border-bottom:1px solid var(--paper-line);
+    background:#fff;
+  }
+  .widget-avatar{
+    width:34px;height:34px;border-radius:50%;
+    background:linear-gradient(135deg,var(--amber),var(--clay));
+    display:flex;align-items:center;justify-content:center;
+    font-family:'Space Grotesk',sans-serif;
+    font-weight:700;color:#fff;font-size:14px;
+    flex-shrink:0;
+  }
+  .widget-meta b{
+    font-family:'Space Grotesk',sans-serif;
+    font-size:14.5px;
+    display:block;
+  }
+  .widget-meta span{
+    font-size:11.5px;
+    color:var(--sage-deep);
+    display:flex;
+    align-items:center;
+    gap:5px;
+  }
+  .widget-meta span::before{
+    content:"";
+    width:6px;height:6px;border-radius:50%;
+    background:var(--sage);
+    display:inline-block;
+  }
+
+  .thread{
+    flex:1;
+    overflow-y:auto;
+    padding:20px;
+    display:flex;
+    flex-direction:column;
+    gap:12px;
+    max-height:420px;
+  }
+  .msg{
+    max-width:78%;
+    padding:10px 14px;
+    border-radius:14px;
+    font-size:13.5px;
+    line-height:1.5;
+    white-space:pre-wrap;
+    word-wrap:break-word;
+  }
+  .msg.agent{
+    align-self:flex-start;
+    background:#fff;
+    border:1px solid var(--paper-line);
+    border-bottom-left-radius:4px;
+  }
+  .msg.user{
+    align-self:flex-end;
+    background:var(--amber);
+    color:var(--ink);
+    border-bottom-right-radius:4px;
+  }
+  .msg.error{
+    align-self:center;
+    background:rgba(194,96,79,0.1);
+    border:1px solid rgba(194,96,79,0.3);
+    color:var(--clay-deep);
+    font-size:12.5px;
+  }
+  .typing{
+    align-self:flex-start;
+    display:flex;
+    gap:4px;
+    padding:12px 14px;
+    background:#fff;
+    border:1px solid var(--paper-line);
+    border-radius:14px;
+    border-bottom-left-radius:4px;
+  }
+  .typing span{
+    width:6px;height:6px;border-radius:50%;
+    background:var(--text-muted);
+    animation:bounce 1.2s infinite ease-in-out;
+  }
+  .typing span:nth-child(2){animation-delay:0.15s;}
+  .typing span:nth-child(3){animation-delay:0.3s;}
+  @keyframes bounce{0%,80%,100%{transform:translateY(0); opacity:0.4;}40%{transform:translateY(-4px); opacity:1;}}
+
+  .composer{
+    display:flex;
+    gap:8px;
+    padding:14px 20px;
+    border-top:1px solid var(--paper-line);
+    background:#fff;
+  }
+  .composer input{
+    flex:1;
+    border:1px solid var(--paper-line);
+    border-radius:999px;
+    padding:10px 16px;
+    font-family:'IBM Plex Sans',sans-serif;
+    font-size:13.5px;
+    background:var(--parchment);
+    color:var(--text-dark);
+  }
+  .composer .btn-primary{border-radius:999px; padding:10px 18px;}
+
+  .ticket-row{
+    padding:0 20px 16px 20px;
+    display:flex;
+    justify-content:flex-end;
+  }
+  .btn-ticket{
+    background:transparent;
+    border:1px dashed var(--amber-deep);
+    color:var(--amber-deep);
+    font-family:'IBM Plex Mono',monospace;
+    font-size:11.5px;
+    letter-spacing:0.03em;
+    padding:8px 14px;
+    border-radius:8px;
+  }
+  .btn-ticket:hover:not(:disabled){background:rgba(232,149,74,0.08);}
+
+  /* ticket card */
+  .ticket-wrap{padding:0 20px 20px 20px;}
+  .ticket{
+    background:#fff;
+    border:1px solid var(--paper-line);
+    border-radius:12px;
+    padding:18px 18px 16px 18px;
+    position:relative;
+    animation:ticketIn 0.25s ease-out;
+  }
+  @keyframes ticketIn{from{opacity:0; transform:translateY(6px);} to{opacity:1; transform:translateY(0);}}
+  .ticket::before{
+    content:"";
+    position:absolute;
+    top:-1px; left:14px; right:14px; height:0;
+    border-top:2px dashed var(--paper-line);
+  }
+  .ticket-top{
+    display:flex;
+    justify-content:space-between;
+    align-items:flex-start;
+    margin-bottom:12px;
+  }
+  .ticket-eyebrow{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:10px;
+    letter-spacing:0.1em;
+    text-transform:uppercase;
+    color:var(--text-muted);
+    margin:0 0 3px 0;
+  }
+  .ticket-top h3{
+    font-family:'Space Grotesk',sans-serif;
+    font-size:15px;
+    margin:0;
+  }
+  .stamp{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:11px;
+    font-weight:600;
+    letter-spacing:0.06em;
+    text-transform:uppercase;
+    padding:5px 10px;
+    border-radius:6px;
+    transform:rotate(-3deg);
+    white-space:nowrap;
+  }
+  .stamp.qualified{background:rgba(111,156,125,0.15); color:var(--sage-deep); border:1px solid rgba(111,156,125,0.4);}
+  .stamp.needs_followup{background:rgba(232,149,74,0.15); color:var(--amber-deep); border:1px solid rgba(232,149,74,0.4);}
+  .stamp.unqualified{background:rgba(194,96,79,0.12); color:var(--clay-deep); border:1px solid rgba(194,96,79,0.35);}
+
+  .ticket-grid{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:10px 16px;
+    margin-bottom:14px;
+  }
+  @media (max-width:480px){.ticket-grid{grid-template-columns:1fr;}}
+  .ticket-field span{
+    display:block;
+    font-family:'IBM Plex Mono',monospace;
+    font-size:10px;
+    letter-spacing:0.06em;
+    text-transform:uppercase;
+    color:var(--text-muted);
+    margin-bottom:2px;
+  }
+  .ticket-field b{font-size:13px; font-weight:500; font-family:'IBM Plex Sans',sans-serif;}
+  .ticket-actions{display:flex; gap:8px; justify-content:flex-end;}
+  .btn-small{
+    font-size:11.5px;
+    padding:7px 12px;
+    border-radius:7px;
+    font-family:'IBM Plex Mono',monospace;
+  }
+  .btn-copy{background:var(--ink); color:var(--on-ink);}
+  .btn-dismiss{background:transparent; border:1px solid var(--paper-line); color:var(--text-muted);}
+</style>
+</head>
+<body>
+
+<div class="app-shell">
+  <div class="top-banner">
+    <div>
+      <p class="eyebrow">Live demo &middot; not a mockup</p>
+      <h1>AI Lead Qualifier</h1>
+      <p>Configure this for any business on the left, then chat as a customer on the right. When you're done, generate a lead ticket to see exactly what would land in the business owner's inbox.</p>
+    </div>
+    <span class="live-pill"><span class="live-dot"></span>RUNNING ON CLAUDE</span>
+  </div>
+
+  <div class="grid">
+    <!-- CONTROL RAIL -->
+    <div class="rail">
+      <div class="field">
+        <label class="rail-label" for="businessName">Business name</label>
+        <input id="businessName" type="text" value="Lakeside Family Dental">
+      </div>
+      <div class="field">
+        <label class="rail-label" for="industry">What they do</label>
+        <input id="industry" type="text" value="dental clinic">
+      </div>
+      <div class="field">
+        <label class="rail-label" for="qualify">What makes a lead qualified</label>
+        <textarea id="qualify">Wants a specific service (cleaning, whitening, implants, ortho), has insurance or budget clarity, and a timeframe within the next month</textarea>
+      </div>
+      <div class="field">
+        <label class="rail-label" for="tone">Tone</label>
+        <select id="tone">
+          <option>Friendly</option>
+          <option>Professional</option>
+          <option>Direct</option>
+        </select>
+      </div>
+      <button class="btn btn-primary" id="applyBtn">Apply &amp; start demo</button>
+      <button class="btn btn-ghost" id="resetBtn">Reset conversation</button>
+      <p class="rail-hint">Tip: on a sales call, change these three fields to match the prospect's business, hit Apply, and chat live — it's the fastest way to make this real for them.</p>
+    </div>
+
+    <!-- CHAT CANVAS -->
+    <div class="canvas">
+      <div class="widget-header">
+        <div class="widget-avatar" id="avatarInitial">L</div>
+        <div class="widget-meta">
+          <b id="widgetBizName">Lakeside Family Dental</b>
+          <span id="widgetStatus">AI Assistant &middot; Online</span>
+        </div>
+      </div>
+
+      <div class="thread" id="thread" aria-live="polite"></div>
+
+      <div class="ticket-row">
+        <button class="btn btn-ticket" id="ticketBtn" disabled>Generate lead ticket &rarr;</button>
+      </div>
+      <div class="ticket-wrap" id="ticketWrap"></div>
+
+      <form class="composer" id="composerForm">
+        <input id="composerInput" type="text" placeholder="Type a message, as if you were a potential customer..." autocomplete="off">
+        <button class="btn btn-primary" id="sendBtn" type="submit">Send</button>
+      </form>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  const state = {
+    businessName: '',
+    industry: '',
+    qualify: '',
+    tone: 'Friendly',
+    messages: [],
+    busy: false
+  };
+
+  const el = (id) => document.getElementById(id);
+  const thread = el('thread');
+
+  function escapeForInitial(name){
+    const n = (name||'').trim();
+    return n ? n[0].toUpperCase() : 'B';
+  }
+
+  function renderMessage(role, content){
+    const div = document.createElement('div');
+    div.className = 'msg ' + role;
+    div.textContent = content;
+    thread.appendChild(div);
+    thread.scrollTop = thread.scrollHeight;
+  }
+
+  function renderError(content){
+    const div = document.createElement('div');
+    div.className = 'msg error';
+    div.textContent = content;
+    thread.appendChild(div);
+    thread.scrollTop = thread.scrollHeight;
+  }
+
+  let typingEl = null;
+  function showTyping(){
+    typingEl = document.createElement('div');
+    typingEl.className = 'typing';
+    typingEl.innerHTML = '<span></span><span></span><span></span>';
+    thread.appendChild(typingEl);
+    thread.scrollTop = thread.scrollHeight;
+  }
+  function hideTyping(){
+    if(typingEl){ typingEl.remove(); typingEl = null; }
+  }
+
+  function buildSystemPrompt(){
+    return "You are the AI front-desk assistant for " + state.businessName + ", a " + state.industry +
+      ". Chat with website visitors in a " + state.tone.toLowerCase() + " tone. Answer general questions naturally and briefly, in 2 to 4 sentences. " +
+      "Your job is to naturally find out: " + state.qualify + ". Ask one focused question at a time rather than interrogating the visitor. " +
+      "Never invent specific prices, exact availability, or policies you don't actually know — if asked, say a team member will confirm those details. " +
+      "Once you sense you have enough information to qualify them, thank them and let them know someone from the team will follow up shortly. " +
+      "Reply in plain conversational text only — no markdown, no asterisks, no bullet lists. Stay fully in character as " + state.businessName + "'s assistant at all times.";
+  }
+
+  async function callClaude(messages, system){
+    // Calls our own serverless function (api/chat.js) instead of Anthropic
+    // directly, so the real API key never reaches the browser.
+    const res = await fetch('/api/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        system: system,
+        messages: messages.map(m => ({ role: m.role, content: m.content }))
+      })
+    });
+    if(!res.ok){ throw new Error('Server responded with status ' + res.status); }
+    const data = await res.json();
+    const text = (data.content || [])
+      .filter(b => b.type === 'text')
+      .map(b => b.text)
+      .join('\n')
+      .trim();
+    if(!text){ throw new Error('Empty response from model'); }
+    return text;
+  }
+
+  function setBusy(b){
+    state.busy = b;
+    el('sendBtn').disabled = b;
+    el('composerInput').disabled = b;
+  }
+
+  // ---- Apply / start demo ----
+  el('applyBtn').addEventListener('click', function(){
+    state.businessName = (el('businessName').value || 'Your Business').trim();
+    state.industry = (el('industry').value || 'local business').trim();
+    state.qualify = (el('qualify').value || 'their need, timeframe, and budget').trim();
+    state.tone = el('tone').value;
+
+    el('widgetBizName').textContent = state.businessName;
+    el('avatarInitial').textContent = escapeForInitial(state.businessName);
+
+    state.messages = [];
+    thread.innerHTML = '';
+    el('ticketWrap').innerHTML = '';
+    el('ticketBtn').disabled = true;
+
+    const greeting = "Hi there \uD83D\uDC4B Thanks for reaching out to " + state.businessName + ". What can I help you with today?";
+    state.messages.push({ role: 'assistant', content: greeting });
+    renderMessage('agent', greeting);
+  });
+
+  // ---- Reset ----
+  el('resetBtn').addEventListener('click', function(){
+    if(!state.businessName){ return; }
+    state.messages = [];
+    thread.innerHTML = '';
+    el('ticketWrap').innerHTML = '';
+    el('ticketBtn').disabled = true;
+    const greeting = "Hi there \uD83D\uDC4B Thanks for reaching out to " + state.businessName + ". What can I help you with today?";
+    state.messages.push({ role: 'assistant', content: greeting });
+    renderMessage('agent', greeting);
+  });
+
+  // ---- Send message ----
+  el('composerForm').addEventListener('submit', async function(e){
+    e.preventDefault();
+    if(state.busy) return;
+    if(!state.businessName){
+      renderError('Click "Apply & start demo" on the left first.');
+      return;
+    }
+    const input = el('composerInput');
+    const text = input.value.trim();
+    if(!text) return;
+
+    state.messages.push({ role: 'user', content: text });
+    renderMessage('user', text);
+    input.value = '';
+
+    setBusy(true);
+    showTyping();
+    try{
+      const reply = await callClaude(state.messages, buildSystemPrompt());
+      hideTyping();
+      state.messages.push({ role: 'assistant', content: reply });
+      renderMessage('agent', reply);
+
+      const userTurns = state.messages.filter(m => m.role === 'user').length;
+      if(userTurns >= 2){ el('ticketBtn').disabled = false; }
+    } catch(err){
+      hideTyping();
+      renderError('Couldn\'t reach the model just now (' + err.message + '). Try sending again.');
+    } finally {
+      setBusy(false);
+      input.focus();
+    }
+  });
+
+  // ---- Generate lead ticket ----
+  el('ticketBtn').addEventListener('click', async function(){
+    if(state.busy) return;
+    setBusy(true);
+    const btn = el('ticketBtn');
+    const originalLabel = btn.textContent;
+    btn.textContent = 'Reading the conversation...';
+
+    const transcript = state.messages
+      .map(m => (m.role === 'user' ? 'Visitor: ' : 'Assistant: ') + m.content)
+      .join('\n');
+
+    const extractionSystem = "Extract a lead summary from a conversation transcript between an AI assistant for \"" + state.businessName +
+      "\" and a website visitor. Respond with ONLY raw JSON, no markdown code fences, no commentary, no leading or trailing text. " +
+      "Match exactly this shape: {\"name\": string or null, \"contact\": string or null, \"need\": string, \"budget_or_timeline\": string, " +
+      "\"urgency\": one of \"qualified\", \"needs_followup\", \"unqualified\", \"recommended_action\": string}. " +
+      "Base the urgency judgement on this qualification bar: " + state.qualify + ". " +
+      "If information is missing, use null or \"not provided\" rather than guessing.";
+
+    try{
+      const raw = await callClaude([{ role: 'user', content: transcript }], extractionSystem);
+      const cleaned = raw.replace(/```json/gi, '').replace(/```/g, '').trim();
+      const data = JSON.parse(cleaned);
+      renderTicket(data);
+    } catch(err){
+      el('ticketWrap').innerHTML = '';
+      const fallback = document.createElement('div');
+      fallback.className = 'msg error';
+      fallback.style.alignSelf = 'stretch';
+      fallback.textContent = 'Could not auto-extract a structured ticket (' + err.message + '). You can still read the conversation above and follow up manually.';
+      el('ticketWrap').appendChild(fallback);
+    } finally {
+      btn.textContent = originalLabel;
+      setBusy(false);
+    }
+  });
+
+  function renderTicket(data){
+    const wrap = el('ticketWrap');
+    wrap.innerHTML = '';
+
+    const urgency = ['qualified','needs_followup','unqualified'].includes(data.urgency) ? data.urgency : 'needs_followup';
+    const urgencyLabel = urgency === 'qualified' ? 'Qualified' : (urgency === 'unqualified' ? 'Not qualified' : 'Needs follow-up');
+
+    const card = document.createElement('div');
+    card.className = 'ticket';
+
+    const top = document.createElement('div');
+    top.className = 'ticket-top';
+    top.innerHTML =
+      '<div><p class="ticket-eyebrow">Lead ticket &middot; ' + new Date().toLocaleString() + '</p><h3>' + state.businessName + '</h3></div>' +
+      '<span class="stamp ' + urgency + '">' + urgencyLabel + '</span>';
+    card.appendChild(top);
+
+    const grid = document.createElement('div');
+    grid.className = 'ticket-grid';
+    const fields = [
+      ['Name', data.name || 'Not provided'],
+      ['Contact', data.contact || 'Not provided'],
+      ['Need', data.need || 'Not provided'],
+      ['Budget / timeline', data.budget_or_timeline || 'Not provided'],
+      ['Recommended action', data.recommended_action || 'Follow up manually']
+    ];
+    fields.forEach(function(f){
+      const fdiv = document.createElement('div');
+      fdiv.className = 'ticket-field';
+      const span = document.createElement('span');
+      span.textContent = f[0];
+      const b = document.createElement('b');
+      b.textContent = f[1];
+      fdiv.appendChild(span);
+      fdiv.appendChild(b);
+      grid.appendChild(fdiv);
+    });
+    card.appendChild(grid);
+
+    const actions = document.createElement('div');
+    actions.className = 'ticket-actions';
+    const copyBtn = document.createElement('button');
+    copyBtn.className = 'btn btn-small btn-copy';
+    copyBtn.textContent = 'Copy summary';
+    copyBtn.addEventListener('click', function(){
+      const text = state.businessName + ' lead — ' + urgencyLabel + '\n' +
+        fields.map(function(f){ return f[0] + ': ' + f[1]; }).join('\n');
+      navigator.clipboard.writeText(text).then(function(){
+        copyBtn.textContent = 'Copied!';
+        setTimeout(function(){ copyBtn.textContent = 'Copy summary'; }, 1500);
+      });
+    });
+    const dismissBtn = document.createElement('button');
+    dismissBtn.className = 'btn btn-small btn-dismiss';
+    dismissBtn.textContent = 'Dismiss';
+    dismissBtn.addEventListener('click', function(){ wrap.innerHTML = ''; });
+
+    actions.appendChild(copyBtn);
+    actions.appendChild(dismissBtn);
+    card.appendChild(actions);
+
+    wrap.appendChild(card);
+  }
+
+  // Auto-start with the default example so it works the instant it's opened.
+  el('applyBtn').click();
+})();
+</script>
+</body>
+</html>

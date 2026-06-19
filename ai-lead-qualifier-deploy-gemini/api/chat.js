@@ -14,14 +14,12 @@ export default async function handler(req, res) {
     return;
   }
 
-  const { system, messages } = req.body || {};
+  const { system, messages, responseSchema } = req.body || {};
   if (!Array.isArray(messages) || messages.length === 0) {
     res.status(400).json({ error: 'Request must include a non-empty messages array.' });
     return;
   }
 
-  // The front-end sends {role: 'user'|'assistant', content: '...'} —
-  // Gemini expects {role: 'user'|'model', parts: [{text: '...'}]}.
   const contents = messages.map(function (m) {
     return {
       role: m.role === 'assistant' ? 'model' : 'user',
@@ -29,17 +27,19 @@ export default async function handler(req, res) {
     };
   });
 
-  // Current Gemini model as of mid-2026. Swap this string if you want a
-  // different Gemini model later (e.g. a "-lite" variant for lower cost).
   const model = 'gemini-3.5-flash';
   const url = 'https://generativelanguage.googleapis.com/v1beta/models/' + model + ':generateContent';
 
   const requestBody = {
     contents: contents,
-    generationConfig: { maxOutputTokens: 1000 }
+    generationConfig: { maxOutputTokens: 1500 }
   };
   if (system) {
     requestBody.systemInstruction = { parts: [{ text: system }] };
+  }
+  if (responseSchema) {
+    requestBody.generationConfig.responseMimeType = 'application/json';
+    requestBody.generationConfig.responseSchema = responseSchema;
   }
 
   try {
@@ -63,8 +63,6 @@ export default async function handler(req, res) {
     const parts = (data.candidates && data.candidates[0] && data.candidates[0].content && data.candidates[0].content.parts) || [];
     const text = parts.map(function (p) { return p.text || ''; }).join('\n').trim();
 
-    // Reshape into the same {content:[{type:'text', text}]} format the
-    // front-end already expects — so index.html needs zero changes at all.
     res.status(200).json({ content: [{ type: 'text', text: text }] });
   } catch (err) {
     res.status(500).json({ error: 'Upstream request failed: ' + err.message });

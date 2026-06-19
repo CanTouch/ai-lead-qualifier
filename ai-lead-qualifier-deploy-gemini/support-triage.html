@@ -1,0 +1,578 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI Support Triage — Live Demo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#16231F;
+    --ink-soft:#1E2D26;
+    --parchment:#FBF7EE;
+    --paper-line:#E4DCC8;
+    --amber:#E8954A;
+    --amber-deep:#C97A33;
+    --sage:#6F9C7D;
+    --sage-deep:#4F7A5A;
+    --clay:#C2604F;
+    --clay-deep:#9E4937;
+    --text-dark:#2B2A26;
+    --text-muted:#7A7264;
+    --on-ink:#F4EFE3;
+    --on-ink-muted:#A9B6AC;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--parchment);
+    font-family:'IBM Plex Sans',sans-serif;
+    color:var(--text-dark);
+    padding:24px;
+    -webkit-font-smoothing:antialiased;
+  }
+  @media (prefers-reduced-motion: reduce){
+    *{animation-duration:0.001ms !important; transition-duration:0.001ms !important;}
+  }
+  :focus-visible{outline:2px solid var(--amber-deep); outline-offset:2px;}
+
+  .app-shell{
+    max-width:1080px;
+    margin:0 auto;
+    border:1px solid var(--paper-line);
+    border-radius:16px;
+    overflow:hidden;
+    box-shadow:0 1px 0 rgba(0,0,0,0.03), 0 12px 32px -16px rgba(22,35,31,0.25);
+    background:var(--parchment);
+  }
+
+  .top-banner{
+    background:var(--ink);
+    color:var(--on-ink);
+    padding:18px 24px;
+    display:flex;
+    align-items:flex-start;
+    justify-content:space-between;
+    gap:16px;
+    flex-wrap:wrap;
+  }
+  .top-banner .eyebrow{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:11px;
+    letter-spacing:0.12em;
+    text-transform:uppercase;
+    color:var(--amber);
+    margin:0 0 4px 0;
+  }
+  .top-banner h1{
+    font-family:'Space Grotesk',sans-serif;
+    font-size:20px;
+    margin:0 0 6px 0;
+    font-weight:600;
+  }
+  .top-banner p{
+    margin:0;
+    font-size:13px;
+    color:var(--on-ink-muted);
+    max-width:480px;
+    line-height:1.5;
+  }
+  .live-pill{
+    display:flex;
+    align-items:center;
+    gap:6px;
+    font-family:'IBM Plex Mono',monospace;
+    font-size:11px;
+    letter-spacing:0.08em;
+    background:rgba(244,239,227,0.08);
+    border:1px solid rgba(244,239,227,0.18);
+    border-radius:999px;
+    padding:6px 12px;
+    color:var(--on-ink);
+    white-space:nowrap;
+    height:fit-content;
+  }
+  .live-dot{
+    width:7px;height:7px;border-radius:50%;
+    background:var(--sage);
+    animation:pulse 2s infinite;
+  }
+  @keyframes pulse{
+    0%{box-shadow:0 0 0 0 rgba(111,156,125,0.55);}
+    70%{box-shadow:0 0 0 6px rgba(111,156,125,0);}
+    100%{box-shadow:0 0 0 0 rgba(111,156,125,0);}
+  }
+
+  .grid{display:grid; grid-template-columns:280px 1fr;}
+  @media (max-width:760px){.grid{grid-template-columns:1fr;}}
+
+  /* control rail */
+  .rail{
+    background:var(--ink-soft);
+    color:var(--on-ink);
+    padding:22px 20px;
+    display:flex;
+    flex-direction:column;
+    gap:16px;
+    border-right:1px solid rgba(244,239,227,0.08);
+  }
+  .rail-label{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:10px;
+    letter-spacing:0.1em;
+    text-transform:uppercase;
+    color:var(--on-ink-muted);
+    margin-bottom:6px;
+    display:block;
+  }
+  .field{display:flex; flex-direction:column;}
+  .field input, .field textarea, .field select{
+    background:rgba(244,239,227,0.06);
+    border:1px solid rgba(244,239,227,0.18);
+    color:var(--on-ink);
+    border-radius:8px;
+    padding:9px 10px;
+    font-family:'IBM Plex Sans',sans-serif;
+    font-size:13px;
+    resize:vertical;
+  }
+  .field textarea{min-height:84px; line-height:1.45;}
+  .field input::placeholder, .field textarea::placeholder{color:rgba(169,182,172,0.55);}
+  .field select{appearance:none; cursor:pointer;}
+
+  .btn{
+    font-family:'Space Grotesk',sans-serif;
+    font-weight:600;
+    font-size:13px;
+    border-radius:8px;
+    border:none;
+    cursor:pointer;
+    padding:10px 14px;
+    transition:transform 0.08s ease, opacity 0.08s ease;
+  }
+  .btn:active{transform:translateY(1px);}
+  .btn:disabled{opacity:0.5; cursor:not-allowed;}
+  .btn-primary{background:var(--amber); color:var(--ink);}
+  .btn-primary:hover:not(:disabled){background:var(--amber-deep);}
+  .btn-ghost{
+    background:transparent;
+    border:1px solid rgba(244,239,227,0.25);
+    color:var(--on-ink-muted);
+    font-size:12px;
+    padding:8px 12px;
+  }
+  .btn-ghost:hover:not(:disabled){color:var(--on-ink); border-color:rgba(244,239,227,0.45);}
+  .rail-hint{font-size:11.5px; color:var(--on-ink-muted); line-height:1.5; margin:-4px 0 0 0;}
+
+  /* canvas */
+  .canvas{display:flex; flex-direction:column; min-height:560px; background:var(--parchment);}
+  .canvas-header{
+    display:flex; align-items:center; gap:10px;
+    padding:16px 20px; border-bottom:1px solid var(--paper-line); background:#fff;
+  }
+  .canvas-avatar{
+    width:34px;height:34px;border-radius:50%;
+    background:linear-gradient(135deg,var(--amber),var(--clay));
+    display:flex;align-items:center;justify-content:center;
+    font-family:'Space Grotesk',sans-serif; font-weight:700; color:#fff; font-size:14px;
+    flex-shrink:0;
+  }
+  .canvas-meta b{font-family:'Space Grotesk',sans-serif; font-size:14.5px; display:block;}
+  .canvas-meta span{font-size:11.5px; color:var(--sage-deep); display:flex; align-items:center; gap:5px;}
+  .canvas-meta span::before{content:""; width:6px;height:6px;border-radius:50%; background:var(--sage); display:inline-block;}
+
+  .intake{padding:20px; display:flex; flex-direction:column; gap:12px;}
+  .examples-row{display:flex; gap:8px; flex-wrap:wrap;}
+  .chip{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:11px;
+    border:1px solid var(--paper-line);
+    background:#fff;
+    color:var(--text-muted);
+    border-radius:999px;
+    padding:6px 12px;
+    cursor:pointer;
+  }
+  .chip:hover{border-color:var(--amber-deep); color:var(--amber-deep);}
+  .ticket-input{
+    width:100%;
+    border:1px solid var(--paper-line);
+    border-radius:10px;
+    padding:12px 14px;
+    font-family:'IBM Plex Sans',sans-serif;
+    font-size:13.5px;
+    min-height:110px;
+    line-height:1.5;
+    background:#fff;
+    color:var(--text-dark);
+  }
+  .intake-actions{display:flex; gap:10px; align-items:center;}
+
+  .typing-row{display:flex; gap:4px; align-items:center; padding:4px 0;}
+  .typing-row span{
+    width:6px;height:6px;border-radius:50%;
+    background:var(--text-muted);
+    animation:bounce 1.2s infinite ease-in-out;
+  }
+  .typing-row span:nth-child(2){animation-delay:0.15s;}
+  .typing-row span:nth-child(3){animation-delay:0.3s;}
+  @keyframes bounce{0%,80%,100%{transform:translateY(0); opacity:0.4;}40%{transform:translateY(-4px); opacity:1;}}
+
+  .error-msg{
+    background:rgba(194,96,79,0.1); border:1px solid rgba(194,96,79,0.3);
+    color:var(--clay-deep); border-radius:8px; padding:10px 14px; font-size:12.5px;
+  }
+
+  /* result card */
+  .result-wrap{padding:0 20px 20px 20px;}
+  .result{
+    background:#fff; border:1px solid var(--paper-line); border-radius:12px;
+    padding:18px; position:relative; animation:cardIn 0.25s ease-out;
+  }
+  @keyframes cardIn{from{opacity:0; transform:translateY(6px);} to{opacity:1; transform:translateY(0);}}
+  .result::before{
+    content:""; position:absolute; top:-1px; left:14px; right:14px; height:0;
+    border-top:2px dashed var(--paper-line);
+  }
+  .result-top{display:flex; justify-content:space-between; align-items:flex-start; gap:10px; margin-bottom:12px; flex-wrap:wrap;}
+  .result-eyebrow{font-family:'IBM Plex Mono',monospace; font-size:10px; letter-spacing:0.1em; text-transform:uppercase; color:var(--text-muted); margin:0 0 3px 0;}
+  .badge-row{display:flex; gap:8px; flex-wrap:wrap;}
+  .badge{
+    font-family:'IBM Plex Mono',monospace; font-size:10.5px; font-weight:600;
+    letter-spacing:0.04em; text-transform:uppercase; padding:5px 10px; border-radius:6px;
+    border:1px solid var(--paper-line); background:var(--parchment); color:var(--text-dark);
+  }
+  .stamp{
+    font-family:'IBM Plex Mono',monospace; font-size:11px; font-weight:600;
+    letter-spacing:0.06em; text-transform:uppercase; padding:5px 10px; border-radius:6px;
+    transform:rotate(-3deg); white-space:nowrap;
+  }
+  .stamp.calm{background:rgba(111,156,125,0.15); color:var(--sage-deep); border:1px solid rgba(111,156,125,0.4);}
+  .stamp.needs_attention{background:rgba(232,149,74,0.15); color:var(--amber-deep); border:1px solid rgba(232,149,74,0.4);}
+  .stamp.urgent{background:rgba(194,96,79,0.12); color:var(--clay-deep); border:1px solid rgba(194,96,79,0.35);}
+
+  .action-banner{
+    border-radius:8px; padding:10px 14px; font-size:13px; font-weight:500;
+    margin-bottom:14px; display:flex; align-items:center; gap:8px;
+  }
+  .action-banner.auto_send_reply{background:rgba(111,156,125,0.12); color:var(--sage-deep); border:1px solid rgba(111,156,125,0.35);}
+  .action-banner.review_before_sending{background:rgba(232,149,74,0.12); color:var(--amber-deep); border:1px solid rgba(232,149,74,0.35);}
+  .action-banner.escalate_to_manager{background:rgba(194,96,79,0.1); color:var(--clay-deep); border:1px solid rgba(194,96,79,0.3);}
+
+  .meta-line{font-size:12.5px; color:var(--text-muted); margin-bottom:6px;}
+  .meta-line b{color:var(--text-dark); font-weight:500;}
+
+  .reply-label{
+    font-family:'IBM Plex Mono',monospace; font-size:10px; letter-spacing:0.08em;
+    text-transform:uppercase; color:var(--text-muted); margin:14px 0 6px 0;
+  }
+  .reply-box{
+    width:100%; border:1px solid var(--paper-line); border-radius:8px;
+    padding:12px 14px; font-family:'IBM Plex Sans',sans-serif; font-size:13.5px;
+    line-height:1.55; min-height:120px; background:var(--parchment); color:var(--text-dark);
+  }
+  .result-actions{display:flex; gap:8px; justify-content:flex-end; margin-top:12px; flex-wrap:wrap;}
+  .btn-small{font-size:11.5px; padding:7px 12px; border-radius:7px; font-family:'IBM Plex Mono',monospace;}
+  .btn-copy{background:var(--ink); color:var(--on-ink);}
+  .btn-regen{background:transparent; border:1px solid var(--paper-line); color:var(--text-muted);}
+  .btn-another{background:transparent; border:1px solid var(--paper-line); color:var(--text-muted);}
+</style>
+</head>
+<body>
+
+<div class="app-shell">
+  <div class="top-banner">
+    <div>
+      <p class="eyebrow">Interactive demo</p>
+      <h1>AI Support Triage</h1>
+      <p>Paste in a real customer message on the right. The agent classifies it, judges urgency, and drafts a ready-to-send reply in your store's tone — using only the policies you give it.</p>
+    </div>
+    <span class="live-pill"><span class="live-dot"></span>RUNNING ON GEMINI</span>
+  </div>
+
+  <div class="grid">
+    <!-- CONTROL RAIL -->
+    <div class="rail">
+      <div class="field">
+        <label class="rail-label" for="storeName">Store name</label>
+        <input id="storeName" type="text" value="Glow & Co. Skincare">
+      </div>
+      <div class="field">
+        <label class="rail-label" for="productType">What you sell</label>
+        <input id="productType" type="text" value="skincare and beauty products">
+      </div>
+      <div class="field">
+        <label class="rail-label" for="tone">Brand tone</label>
+        <select id="tone">
+          <option>Friendly</option>
+          <option>Professional</option>
+          <option>Playful</option>
+          <option>Direct</option>
+        </select>
+      </div>
+      <div class="field">
+        <label class="rail-label" for="policies">Policies &amp; key facts</label>
+        <textarea id="policies">Free returns within 30 days, unworn/unopened. Free shipping on orders over $50. Standard shipping takes 5-7 business days. No refunds on final-sale items, only store credit.</textarea>
+      </div>
+      <button class="btn btn-primary" id="applyBtn">Apply settings</button>
+    </div>
+
+    <!-- CANVAS -->
+    <div class="canvas">
+      <div class="canvas-header">
+        <div class="canvas-avatar" id="avatarInitial">G</div>
+        <div class="canvas-meta">
+          <b id="storeNameDisplay">Glow & Co. Skincare</b>
+          <span>Support Inbox &middot; AI Triage</span>
+        </div>
+      </div>
+
+      <div class="intake">
+        <div class="examples-row">
+          <button class="chip" data-example="late">Try: angry, late shipment</button>
+          <button class="chip" data-example="simple">Try: simple product question</button>
+          <button class="chip" data-example="refund">Try: return/refund request</button>
+        </div>
+        <textarea class="ticket-input" id="ticketInput" placeholder="Paste a customer message here, or click an example above..."></textarea>
+        <div class="intake-actions">
+          <button class="btn btn-primary" id="analyzeBtn">Analyze ticket</button>
+          <div class="typing-row" id="typingRow" style="display:none;"><span></span><span></span><span></span></div>
+        </div>
+        <div id="errorSlot"></div>
+      </div>
+
+      <div class="result-wrap" id="resultWrap"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  const state = {
+    storeName: '',
+    productType: '',
+    tone: 'Friendly',
+    policies: '',
+    lastTicketText: '',
+    busy: false
+  };
+
+  const el = (id) => document.getElementById(id);
+
+  const examples = {
+    late: "Hi, I ordered a face serum 9 days ago and it still says 'preparing to ship.' This is ridiculous, I needed it for an event this weekend. I want my money back if it doesn't arrive by Friday.",
+    simple: "Quick question - does the Vitamin C serum work okay for sensitive skin? Mine gets red easily with new products.",
+    refund: "I'd like to return the cleanser I bought, it broke me out badly. Can I get a refund? Order #48213."
+  };
+
+  document.querySelectorAll('.chip').forEach(function(btn){
+    btn.addEventListener('click', function(){
+      el('ticketInput').value = examples[btn.dataset.example] || '';
+      el('ticketInput').focus();
+    });
+  });
+
+  function readSettings(){
+    state.storeName = (el('storeName').value || 'Your Store').trim();
+    state.productType = (el('productType').value || 'products').trim();
+    state.tone = el('tone').value;
+    state.policies = (el('policies').value || 'No specific policies provided.').trim();
+    el('storeNameDisplay').textContent = state.storeName;
+    el('avatarInitial').textContent = state.storeName.trim()[0] ? state.storeName.trim()[0].toUpperCase() : 'S';
+  }
+
+  el('applyBtn').addEventListener('click', function(){
+    readSettings();
+    el('resultWrap').innerHTML = '';
+  });
+
+  function buildSystemPrompt(){
+    return "You are a customer support triage assistant for " + state.storeName + ", an online store selling " + state.productType + ". " +
+      "Brand tone for replies: " + state.tone.toLowerCase() + ". " +
+      "Policies and key facts you may reference (do not invent anything beyond this): " + state.policies + " " +
+      "Given a single customer support message, respond with ONLY raw JSON, no markdown code fences, no commentary, no leading or trailing text. " +
+      "Match exactly this shape: {\"category\": one of \"Shipping & Delivery\", \"Returns & Refunds\", \"Product Question\", \"Order Issue\", \"Complaint\", \"Other\", " +
+      "\"urgency\": one of \"calm\", \"needs_attention\", \"urgent\", " +
+      "\"sentiment_summary\": a short phrase describing the customer's emotional state, " +
+      "\"key_details\": a short string noting any order numbers, product names, or specifics mentioned, or \"None mentioned\", " +
+      "\"recommended_action\": one of \"auto_send_reply\", \"review_before_sending\", \"escalate_to_manager\", " +
+      "\"drafted_reply\": a complete, ready-to-send reply from the store's support team in the configured tone, using only the policies and facts given. " +
+      "Never invent specific dates, tracking numbers, refund amounts, or promises not present in the provided policies — if specifics are needed, the reply should say a team member will confirm them.}";
+  }
+
+  async function callClaude(messages, system, responseSchema){
+    // Calls our own serverless function (api/chat.js) instead of Anthropic
+    // directly, so the real API key never reaches the browser.
+    const res = await fetch('/api/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        system: system,
+        messages: messages.map(m => ({ role: m.role, content: m.content })),
+        responseSchema: responseSchema || undefined
+      })
+    });
+    if(!res.ok){ throw new Error('Server responded with status ' + res.status); }
+    const data = await res.json();
+    const text = (data.content || [])
+      .filter(b => b.type === 'text')
+      .map(b => b.text)
+      .join('\n')
+      .trim();
+    if(!text){ throw new Error('Empty response from model'); }
+    return text;
+  }
+
+  function setBusy(b){
+    state.busy = b;
+    el('analyzeBtn').disabled = b;
+    el('typingRow').style.display = b ? 'flex' : 'none';
+  }
+
+  function showError(msg){
+    el('errorSlot').innerHTML = '';
+    const div = document.createElement('div');
+    div.className = 'error-msg';
+    div.textContent = msg;
+    el('errorSlot').appendChild(div);
+  }
+  function clearError(){ el('errorSlot').innerHTML = ''; }
+
+  async function analyze(ticketText){
+    if(!state.storeName){ readSettings(); }
+    clearError();
+    setBusy(true);
+    const analysisSchema = {
+      type: 'object',
+      properties: {
+        category: { type: 'string', enum: ['Shipping & Delivery', 'Returns & Refunds', 'Product Question', 'Order Issue', 'Complaint', 'Other'] },
+        urgency: { type: 'string', enum: ['calm', 'needs_attention', 'urgent'] },
+        sentiment_summary: { type: 'string' },
+        key_details: { type: 'string' },
+        recommended_action: { type: 'string', enum: ['auto_send_reply', 'review_before_sending', 'escalate_to_manager'] },
+        drafted_reply: { type: 'string' }
+      },
+      required: ['category', 'urgency', 'sentiment_summary', 'key_details', 'recommended_action', 'drafted_reply']
+    };
+    try{
+      const raw = await callClaude([{ role: 'user', content: ticketText }], buildSystemPrompt(), analysisSchema);
+      const cleaned = raw.replace(/```json/gi, '').replace(/```/g, '').trim();
+      const data = JSON.parse(cleaned);
+      renderResult(data);
+    } catch(err){
+      showError("Couldn't analyze that ticket (" + err.message + "). Try again.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  el('analyzeBtn').addEventListener('click', function(){
+    const text = el('ticketInput').value.trim();
+    if(!text){ showError('Paste a customer message first, or click one of the examples above.'); return; }
+    state.lastTicketText = text;
+    analyze(text);
+  });
+
+  function actionLabel(action){
+    if(action === 'auto_send_reply') return 'Recommended: safe to send as drafted';
+    if(action === 'escalate_to_manager') return 'Recommended: escalate to a manager';
+    return 'Recommended: quick review before sending';
+  }
+
+  function urgencyKey(u){
+    return ['calm','needs_attention','urgent'].includes(u) ? u : 'needs_attention';
+  }
+  function actionKey(a){
+    return ['auto_send_reply','review_before_sending','escalate_to_manager'].includes(a) ? a : 'review_before_sending';
+  }
+
+  function renderResult(data){
+    const wrap = el('resultWrap');
+    wrap.innerHTML = '';
+
+    const urgency = urgencyKey(data.urgency);
+    const action = actionKey(data.recommended_action);
+
+    const card = document.createElement('div');
+    card.className = 'result';
+
+    const top = document.createElement('div');
+    top.className = 'result-top';
+    top.innerHTML =
+      '<div><p class="result-eyebrow">Ticket analyzed &middot; ' + new Date().toLocaleString() + '</p></div>' +
+      '<div class="badge-row">' +
+        '<span class="badge">' + (data.category || 'Other') + '</span>' +
+        '<span class="stamp ' + urgency + '">' + urgency.replace('_',' ') + '</span>' +
+      '</div>';
+    card.appendChild(top);
+
+    const banner = document.createElement('div');
+    banner.className = 'action-banner ' + action;
+    banner.textContent = actionLabel(action);
+    card.appendChild(banner);
+
+    const sentimentLine = document.createElement('p');
+    sentimentLine.className = 'meta-line';
+    sentimentLine.innerHTML = '<b>Sentiment:</b> ' + (data.sentiment_summary || 'Not provided');
+    card.appendChild(sentimentLine);
+
+    const detailsLine = document.createElement('p');
+    detailsLine.className = 'meta-line';
+    detailsLine.innerHTML = '<b>Key details:</b> ' + (data.key_details || 'None mentioned');
+    card.appendChild(detailsLine);
+
+    const replyLabel = document.createElement('p');
+    replyLabel.className = 'reply-label';
+    replyLabel.textContent = 'Drafted reply (edit if needed)';
+    card.appendChild(replyLabel);
+
+    const replyBox = document.createElement('textarea');
+    replyBox.className = 'reply-box';
+    replyBox.id = 'replyBox';
+    replyBox.value = data.drafted_reply || '';
+    card.appendChild(replyBox);
+
+    const actions = document.createElement('div');
+    actions.className = 'result-actions';
+
+    const copyBtn = document.createElement('button');
+    copyBtn.className = 'btn btn-small btn-copy';
+    copyBtn.textContent = 'Copy reply';
+    copyBtn.addEventListener('click', function(){
+      navigator.clipboard.writeText(replyBox.value).then(function(){
+        copyBtn.textContent = 'Copied!';
+        setTimeout(function(){ copyBtn.textContent = 'Copy reply'; }, 1500);
+      });
+    });
+
+    const regenBtn = document.createElement('button');
+    regenBtn.className = 'btn btn-small btn-regen';
+    regenBtn.textContent = 'Regenerate draft';
+    regenBtn.addEventListener('click', function(){ analyze(state.lastTicketText); });
+
+    const anotherBtn = document.createElement('button');
+    anotherBtn.className = 'btn btn-small btn-another';
+    anotherBtn.textContent = 'Analyze another ticket';
+    anotherBtn.addEventListener('click', function(){
+      wrap.innerHTML = '';
+      el('ticketInput').value = '';
+      el('ticketInput').focus();
+    });
+
+    actions.appendChild(copyBtn);
+    actions.appendChild(regenBtn);
+    actions.appendChild(anotherBtn);
+    card.appendChild(actions);
+
+    wrap.appendChild(card);
+    card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }
+
+  // Initialize defaults and load a starter example so it's immediately demoable.
+  readSettings();
+  el('ticketInput').value = examples.late;
+})();
+</script>
+</body>
+</html>

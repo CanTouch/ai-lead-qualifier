@@ -8,7 +8,7 @@ export default async function handler(req, res) {
     return;
   }
 
-  const apiKey = process.env.GEMINI_API_KEY;
+  const apiKey = process.env.AQ.Ab8RN6JQdGZ8X8tOScKs5FhEFKhPtIqgDZGRuu3XZ20IGotGsw  ;
   if (!apiKey) {
     res.status(500).json({ error: 'Server is missing GEMINI_API_KEY. Set it in Vercel project settings.' });
     return;
